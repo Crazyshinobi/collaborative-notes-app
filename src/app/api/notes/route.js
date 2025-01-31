@@ -1,11 +1,46 @@
 import connectDb from "@/lib/dbConnect";
 import Notes from "@/models/Note";
 import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
 export async function POST(req, res) {
   try {
     await connectDb();
-    const { title, content, owner, sharedWith } = await req.json();
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized - No token provided" },
+        { status: 401 }
+      );
+    }
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid token" },
+        { status: 401 }
+      );
+    }
+    const { title, content } = await req.json();
+    if (!title || !content) {
+      return NextResponse.json(
+        { error: "Title and content are required" },
+        { status: 400 }
+      );
+    }
+
+    // Create new note
+    const newNote = new Note({
+      title,
+      content,
+      owner: decoded.userId, // Extracted from JWT token
+    });
+
+    await newNote.save();
+    return NextResponse.json({ success: true, note: newNote }, { status: 201 });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
