@@ -1,0 +1,69 @@
+"use client";
+import React, { useEffect, useState } from "react";
+import { ModeToggle } from "./ModeToggle";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CircleUserRound } from "lucide-react";
+import Link from "next/link";
+
+export const Navbar = () => {
+  const [username, setUsername] = useState(null);
+
+  // Check for username in localStorage only on the client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUsername = localStorage.getItem("username");
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // Clear username and token from localStorage upon logout
+    localStorage.removeItem("username");
+    localStorage.removeItem("token"); // Assuming you also want to clear the token
+    setUsername(null); // Reset username state
+    // Redirect or handle logout logic here, e.g., redirect to home page
+    window.location.href = "/"; // Example: Redirect to homepage after logout
+  };
+
+  return (
+    <nav className="px-6 py-4 bg-background border-b">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div>
+          <Link href="/">
+            <h1 className="text-lg font-semibold text-foreground">CollabNotes</h1>
+          </Link>
+        </div>
+        <div className="flex gap-5 items-center">
+          {username ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <div className="flex gap-2 items-center">
+                    <CircleUserRound />
+                    <div>{`Hi ${username}`}</div>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" onClick={() => window.location.href = "/login"}>
+              Log In
+            </Button>
+          )}
+          <ModeToggle />
+        </div>
+      </div>
+    </nav>
+  );
+};

@@ -1,4 +1,4 @@
-import connectDb from "@/lib/dbConnect";
+import connectDb from "@/utils/dbConnect";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -51,7 +51,7 @@ export async function POST(req, res) {
       {
         success: true,
         message: "Login successful",
-        name: existingUser.name,
+        name: existingUser.username,
         token,
       },
       { status: 200 }

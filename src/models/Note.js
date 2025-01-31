@@ -14,7 +14,7 @@ const noteSchema = new mongoose.Schema({
       ref: "User",
       required: true,
     },
-    collaborators: [
+    sharedWith: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
