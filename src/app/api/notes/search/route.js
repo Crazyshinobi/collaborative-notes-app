@@ -30,19 +30,33 @@ export async function GET(req) {
         { title: { $regex: query, $options: "i" } },
         { content: { $regex: query, $options: "i" } },
       ],
-    });
+    }).populate("owner", "username") // Populate the owner's username
+      .populate("sharedWith", "username") // Populate the sharedWith users' usernames
+      .exec();
 
-    const sharedNotes = await SharedNote.find({
-      sharedWith: auth.userId,
-    }).populate({
-      path: "note",
-      match: {
-        $or: [
-          { title: { $regex: query, $options: "i" } },
-          { content: { $regex: query, $options: "i" } },
-        ],
-      },
-    });
+      const sharedNotes = await SharedNote.find({
+        sharedWith: auth.userId,
+      })
+        .populate({
+          path: "note",
+          match: {
+            $or: [
+              { title: { $regex: query, $options: "i" } },
+              { content: { $regex: query, $options: "i" } },
+            ],
+          },
+          populate: [
+            {
+              path: "owner", // Populate the owner's username within the note
+              select: "username",
+            },
+            {
+              path: "sharedWith", // Populate the sharedWith users' usernames within the note
+              select: "username",
+            },
+          ],
+        })
+        .exec();
 
     const filteredSharedNotes = sharedNotes
       .map((shared) => shared.note)
