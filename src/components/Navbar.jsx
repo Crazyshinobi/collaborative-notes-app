@@ -15,7 +15,6 @@ import Link from "next/link";
 export const Navbar = () => {
   const [username, setUsername] = useState(null);
 
-  // Check for username in localStorage only on the client side
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUsername = localStorage.getItem("username");
@@ -24,12 +23,10 @@ export const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    // Clear username and token from localStorage upon logout
     localStorage.removeItem("username");
-    localStorage.removeItem("token"); // Assuming you also want to clear the token
-    setUsername(null); // Reset username state
-    // Redirect or handle logout logic here, e.g., redirect to home page
-    window.location.href = "/"; // Example: Redirect to homepage after logout
+    localStorage.removeItem("token"); 
+    setUsername(null); 
+    window.location.href = "/"; 
   };
 
   return (

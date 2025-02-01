@@ -14,13 +14,13 @@ import Link from "next/link";
 import axios from "axios";
 import { useToast } from "@/components/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Use useRouter from 'next/navigation'
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 
 export default function LoginForm({ className, ...props }) {
   const { toast } = useToast();
-  const [isMounted, setIsMounted] = useState(false); // Track mount status
-  const router = useRouter(); // Use useRouter hook
+  const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,8 +28,12 @@ export default function LoginForm({ className, ...props }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true); // Set to true once the component is mounted
-  }, []);
+    setIsMounted(true);
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +88,6 @@ export default function LoginForm({ className, ...props }) {
     }
   };
 
-  // Don't render the component until it's mounted
   if (!isMounted) {
     return null;
   }
@@ -92,7 +95,8 @@ export default function LoginForm({ className, ...props }) {
   return (
     <>
       <Navbar />
-      <div className="flex flex-col min-h-[80vh] pt-16"> {/* Adjust this */}
+      <div className="flex flex-col min-h-[80vh] pt-16">
+        {/* Adjust this */}
         <div className="flex-grow flex items-center justify-center px-6 md:px-10">
           <div className="w-full max-w-sm">
             <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -134,7 +138,11 @@ export default function LoginForm({ className, ...props }) {
                       </div>
 
                       {/* Submit Button */}
-                      <Button type="submit" className="w-full" disabled={loading}>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loading}
+                      >
                         {loading ? "Logging in..." : "Login"}
                       </Button>
                     </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import Link from "next/link";
 import axios from "axios";
 import { useToast } from "@/components/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
+import { useRouter } from "next/navigation";
 
 export default function SignupForm({ className, ...props }) {
   const { toast } = useToast();
@@ -23,6 +24,7 @@ export default function SignupForm({ className, ...props }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,6 +56,13 @@ export default function SignupForm({ className, ...props }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   return (
     <>

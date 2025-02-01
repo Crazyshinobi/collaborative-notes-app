@@ -1,5 +1,6 @@
 import connectDb from "@/utils/dbConnect";
 import Note from "@/models/Note";
+import SharedNote from "@/models/SharedNote";
 import { NextResponse } from "next/server";
 import { authenticate } from "@/utils/authMiddleware";
 
@@ -42,18 +43,39 @@ export async function GET(req, res) {
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-    console.log(auth)
-    const notes = await Note.find({ owner: auth.userId });
-    if (notes) {
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Data fetched succcessfully",
-          notes,
-        },
-        { status: 200 }
-      );
-    }
+
+    // Fetch owned notes and populate the owner's username
+    const ownedNotes = await Note.find({ owner: auth.userId })
+      .populate("owner", "username")
+      .populate("sharedWith", "username") // Populate the owner's username
+      .exec();
+
+    // Fetch shared notes and populate the note's owner's username and the sharedWith username
+    const sharedNotes = await SharedNote.find({ sharedWith: auth.userId })
+      .populate({
+        path: "note",
+        populate: { path: "owner", select: "username" }, // Populate the owner's username in the note
+      })
+      .populate({
+        path: "note",
+        populate: { path: "sharedWith", select: "username" },
+      })
+      .exec();
+
+    // Extract the note data from shared notes
+    const sharedNoteData = sharedNotes.map((sharedNote) => sharedNote.note);
+
+    // Combine owned and shared notes
+    const allNotes = [...ownedNotes, ...sharedNoteData];
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Data fetched successfully",
+        notes: allNotes,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(

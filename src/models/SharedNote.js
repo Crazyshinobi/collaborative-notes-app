@@ -8,11 +8,11 @@ const sharedNoteSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    sharedWith: {
+    sharedWith: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-    },
+    }],
     permissions: { type: String, enum: ["view", "edit"], default: "edit" },
   },
   { timestamps: true } 

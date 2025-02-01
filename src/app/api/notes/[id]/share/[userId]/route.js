@@ -1,15 +1,16 @@
 import connectDb from "@/utils/dbConnect";
 import SharedNote from "@/models/SharedNote";
 import Note from "@/models/Note";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
 import { authenticate } from "@/utils/authMiddleware";
-import { initSocket } from "@/server"; // Importing socket initialization
 
 export async function DELETE(req, { params }) {
   await connectDb();
 
-  const { id: noteId, userId } = params;
+  const { id: noteId, userId: collaboratorId } = await params;
   const auth = await authenticate(req);
+
   if (auth.error) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -20,6 +21,7 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
 
+    // Check if the authenticated user is the owner of the note
     if (note.owner.toString() !== auth.userId) {
       return NextResponse.json(
         { error: "Forbidden - You do not own this note" },
@@ -27,9 +29,18 @@ export async function DELETE(req, { params }) {
       );
     }
 
+    // Find the user by email
+    const user = await User.findOne({ email: collaboratorId });
+    if (!user) {
+      return NextResponse.json(
+        { error: "User with the provided email not found" },
+        { status: 404 }
+      );
+    }
+
     const sharedNote = await SharedNote.findOne({
       note: noteId,
-      sharedWith: userId,
+      sharedWith: user._id,
     });
 
     if (!sharedNote) {
@@ -39,18 +50,17 @@ export async function DELETE(req, { params }) {
       );
     }
 
+    // Delete the shared note entry
     await SharedNote.deleteOne({ _id: sharedNote._id });
 
+    // Remove the user from the note's sharedWith array
     note.sharedWith = note.sharedWith.filter(
-      (sharedUserId) => sharedUserId.toString() !== userId
+      (sharedUserId) => sharedUserId.toString() !== user._id.toString()
     );
     await note.save();
 
-    const io = initSocket();
-    io.emit("collaboratorRemoved", { noteId, userId });
-
     return NextResponse.json(
-      { message: "Collaborator removed successfully" },
+      { success: true, message: "Collaborator removed successfully" },
       { status: 200 }
     );
   } catch (error) {
@@ -60,4 +70,5 @@ export async function DELETE(req, { params }) {
       { status: 500 }
     );
   }
+
 }

@@ -1,9 +1,9 @@
 import connectDb from "@/utils/dbConnect";
+import User from "@/models/User";
 import Note from "@/models/Note";
 import SharedNote from "@/models/SharedNote";
 import { NextResponse } from "next/server";
 import { authenticate } from "@/utils/authMiddleware";
-import { initSocket } from "@/server";
 
 export async function GET(req, { params }) {
   await connectDb();
@@ -14,7 +14,7 @@ export async function GET(req, { params }) {
   }
 
   try {
-    const noteId = params.id;
+    const noteId = await params.id;
     const note = await Note.findById(noteId);
 
     if (!note) {
@@ -49,28 +49,51 @@ export async function GET(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     await connectDb();
+    // Authenticate the user
     const auth = await authenticate(req);
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-    const { id } = await params;
+
+    const { id } = params; // Get the note ID from params
+
+    // Find the note
     const note = await Note.findById(id);
     if (!note) {
       return NextResponse.json(
         {
           success: false,
-          message: "Note not Found",
+          message: "Note not found",
         },
         { status: 404 }
       );
     }
+
+    // Check if the authenticated user is the owner of the note
     if (note.owner.toString() !== auth.userId) {
       return NextResponse.json(
-        { error: "Unauthorized - Not your note" },
+        { success: false, error: "Unauthorized - Not your note" },
         { status: 403 }
       );
     }
 
+    // Find all users who have this note in their `sharedWith` array
+    const usersWithSharedNote = await User.find({ sharedWith: id });
+
+    // Remove the note from their `sharedWith` arrays
+    await Promise.all(
+      usersWithSharedNote.map(async (user) => {
+        user.sharedWith = user.sharedWith.filter(
+          (noteId) => noteId.toString() !== id
+        );
+        await user.save();
+      })
+    );
+
+    // Delete all shared note entries related to this note
+    await SharedNote.deleteMany({ note: id });
+
+    // Delete the note
     await Note.findByIdAndDelete(id);
 
     return NextResponse.json(
@@ -83,7 +106,7 @@ export async function DELETE(req, { params }) {
       {
         success: false,
         message: "Internal Server Error",
-        error,
+        error: error.message,
       },
       { status: 500 }
     );
@@ -127,12 +150,9 @@ export async function PUT(req, { params }) {
         { status: 403 }
       );
     }
-
     note.title = title;
     note.content = content;
     await note.save();
-    const io = initSocket();
-    io.emit("noteUpdated", { noteId });
     return NextResponse.json(
       { success: true, message: "Note updated successfully", note },
       { status: 200 }
