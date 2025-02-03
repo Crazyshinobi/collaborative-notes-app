@@ -87,15 +87,27 @@ export function ViewNotes({ searchQuery, filter }) {
         throw new Error(response?.data?.error || "Failed to delete note.");
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.response.data.error || "An unexpected error occurred.",
+        description:
+          error.response.data.error || "An unexpected error occurred.",
       });
     }
   };
 
+  // Polling: Fetch notes every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotes();
+    }, 5000); // 5000 milliseconds = 5 seconds
+
+    // Cleanup the interval on component unmount
+    return () => clearInterval(interval);
+  }, [searchQuery, filter]);
+
+  // Fetch notes on initial render and when searchQuery or filter changes
   useEffect(() => {
     fetchNotes();
   }, [searchQuery, filter]);
@@ -142,7 +154,7 @@ export function ViewNotes({ searchQuery, filter }) {
                   >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </Button>
-                  <ShareNote noteId={note._id} fetchNotes={fetchNotes}/>
+                  <ShareNote noteId={note._id} fetchNotes={fetchNotes} />
                 </div>
                 {note.sharedWith && note.sharedWith.length > 0 && (
                   <div className="text-sm text-muted-foreground">
